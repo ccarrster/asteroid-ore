@@ -1,0 +1,286 @@
+<script src="pixi.min.js"></script>
+<script type="module">
+
+// Asynchronous IIFE
+
+class Tile{
+    constructor(ore){
+        this.ore = ore;
+    }
+}
+
+class Point{
+    constructor(x, y){
+        this.x = x;
+        this.y = y;
+    }
+}
+
+//We have a 121 x 121 grid
+//The first tile starts at 59, 59
+/*
+
+*/
+
+
+let tiles = [];
+
+let grid = [];
+for(let i = 0; i < 122; i++){
+    grid[i] = [];
+    for(let j = 0; j < 122; j++){
+        grid[i][j] = new Tile('unselectable');
+    }
+}
+
+
+for(let i = 0; i < 10; i++){
+    tiles.push(new Tile(3));
+}
+for(let i = 0; i < 20; i++){
+    tiles.push(new Tile(2));
+}
+for(let i = 0; i < 30; i++){
+    tiles.push(new Tile(1));
+}
+
+while(tiles.length > 0){
+    addTile(tiles.splice(Math.floor(Math.random()*tiles.length), 1)[0]);
+}
+
+function addTile(newTile){
+    if(tiles.length == 59){
+        newTile.x = 59;
+        newTile.y = 59;
+        grid[59][59] = newTile;
+        addAvailableLocations(new Point(59, 59));
+    } else {
+        let availablePoints = [];
+        for(let i = 0; i < grid.length; i++){
+            for(let j = 0; j < grid.length; j++){
+                if(grid[i][j].ore == 'available'){
+                    availablePoints.push(new Point(i, j));
+                }
+            }
+        }
+        let nextPoint = availablePoints.splice(Math.floor(Math.random()*availablePoints.length), 1)[0];
+        newTile.x = nextPoint.x;
+        newTile.y = nextPoint.y;
+        grid[nextPoint.x][nextPoint.y] = newTile;
+        addAvailableLocations(new Point(nextPoint.x, nextPoint.y));
+    }
+}
+
+function addAvailableLocations(point){
+    let x = point.x;
+    let y = point.y;
+    //Not quite sure if this is right need to visualize it
+    let xOffset = 0;
+    if(y % 2 == 1){
+        xOffset = -1;
+    }
+    
+    makeGridAvailable(x + 1, y);
+    makeGridAvailable(x - 1, y);
+    makeGridAvailable(x + xOffset, y + 1);
+    makeGridAvailable(x + 1 + xOffset, y + 1);
+    makeGridAvailable(x + xOffset, y - 1);
+    makeGridAvailable(x + 1 + xOffset, y - 1);
+}
+
+function makeGridAvailable(x, y){
+    if(grid[x][y].ore == 'unselectable'){
+        grid[x][y].ore = 'available';
+    }
+}
+
+class Player{
+    constructor(color){
+        this.color = color;
+        this.ore1 = 0;
+        this.ore2 = 0;
+        this.ore3 = 0;
+    }
+}
+
+let players = [];
+players.push(new Player('blue'));
+
+//TODO fix
+function getNextPlayer(){
+    turn = players[0];
+}
+
+let turn = players[0];
+let gameMode = 'place';
+let originTile = null;
+let destinationTile = null;
+
+function onClick(event){
+    console.log(event.data.target);
+    if(gameMode == 'origin'){
+        originTile = event.data.target;
+        gameMode = 'destination';
+    } else if(gameMode == 'destination'){
+        destinationTile = event.data.target;
+        //TODO is it good?
+        if(true){
+            moveManToTile(manBlueSprite, destinationTile);
+            gameMode = 'origin';
+            getNextPlayer();
+            if(originTile.tile.ore == 1){
+                turn.ore1 += 1;
+            } else if(originTile.tile.ore == 2){
+                turn.ore2 += 1;
+            } else if(originTile.tile.ore == 3){
+                turn.ore3 += 1;
+            }
+            console.log(turn);
+            originTile.destroy();
+        }
+    } else if(gameMode == 'place'){
+        let placeTile = event.data.target;
+        //xxx
+        //TODO is it valid
+        moveManToTile(manBlueSprite, placeTile);
+        gameMode = 'origin';
+        getNextPlayer();
+    }
+    console.log(turn);
+    console.log(gameMode);
+}
+
+function moveManToTile(man, tile){
+    let spriteXOffset = 0;
+        if(tile.tile.y % 2 == 0){
+            spriteXOffset = 15;
+        }
+        man.anchor.set(0.5);
+        man.x = (tile.tile.x * 26) - (lowestX * 20) + spriteXOffset;
+        man.y = (tile.tile.y * 27) - (lowestY * 20);
+        man.zIndex  = 2;
+}
+
+console.log(grid);
+
+let lowestX = 130;
+let lowestY = 130;
+let manBlueSprite;
+
+
+(async () =>
+{
+    // Create a PixiJS application.
+    const app = new PIXI.Application();
+
+    // Intialize the application.
+    await app.init({ background: '#1099bb', resizeTo: window });
+
+    const asteroid1 = await PIXI.Assets.load('./images/asteroid1.png');
+    const asteroid2 = await PIXI.Assets.load('./images/asteroid2.png');
+    const asteroid3 = await PIXI.Assets.load('./images/asteroid3.png');
+    const manblue = await PIXI.Assets.load('./images/manblue.png');
+    const mangreen = await PIXI.Assets.load('./images/mangreen.png');
+    const manred = await PIXI.Assets.load('./images/manred.png');
+    const manyellow = await PIXI.Assets.load('./images/manyellow.png');
+
+    const asteroid1Sprite = new PIXI.Sprite(asteroid1);
+    const asteroid2Sprite = new PIXI.Sprite(asteroid2);
+    const asteroid3Sprite = new PIXI.Sprite(asteroid3);
+    manBlueSprite = new PIXI.Sprite(manblue);
+    const manGreenSprite = new PIXI.Sprite(mangreen);
+    const manRedSprite = new PIXI.Sprite(manred);
+    const manYellowSprite = new PIXI.Sprite(manyellow);
+
+    asteroid1Sprite.anchor.set(0.5)
+    asteroid2Sprite.anchor.set(0.5)
+    asteroid3Sprite.anchor.set(0.5)
+    manBlueSprite.anchor.set(0.5)
+    manGreenSprite.anchor.set(0.5)
+    manRedSprite.anchor.set(0.5)
+    manYellowSprite.anchor.set(0.5)
+
+
+    asteroid1Sprite.x = app.screen.width / 2
+    asteroid1Sprite.y = app.screen.height / 2
+    asteroid2Sprite.x = app.screen.width / 2
+    asteroid2Sprite.y = app.screen.height / 2
+    asteroid3Sprite.x = app.screen.width / 2
+    asteroid3Sprite.y = app.screen.height / 2
+    manBlueSprite.x = app.screen.width + 20 / 2
+    manBlueSprite.y = app.screen.height + 20 / 2
+    manGreenSprite.x = app.screen.width / 2
+    manGreenSprite.y = app.screen.height / 2
+    manRedSprite.x = app.screen.width / 2
+    manRedSprite.y = app.screen.height / 2
+    manYellowSprite.x = app.screen.width / 2
+    manYellowSprite.y = app.screen.height / 2
+
+    
+    app.stage.addChild(asteroid1Sprite);
+    app.stage.addChild(asteroid2Sprite);
+    app.stage.addChild(asteroid3Sprite);
+    app.stage.addChild(manBlueSprite);
+    app.stage.addChild(manGreenSprite);
+    app.stage.addChild(manRedSprite);
+    app.stage.addChild(manYellowSprite);
+    
+
+    for(let i = 0; i < grid.length; i++)
+    {
+        for(let j = 0; j < grid[i].length; j++)
+        {
+            if(grid[i][j].ore == 1 || grid[i][j].ore == 2 || grid[i][j].ore == 3){
+                if(i < lowestX){
+                    lowestX = i;
+                }
+                if(j < lowestY){
+                    lowestY = j;
+                }
+            }
+        }
+    }
+
+    let spriteId = 0;
+    for(let i = 0; i < grid.length; i++)
+    {
+        for(let j = 0; j < grid[i].length; j++)
+        {
+            let asteroidSprite = null;
+            if(grid[i][j].ore == 1){
+                asteroidSprite = new PIXI.Sprite(asteroid1);
+            } else if(grid[i][j].ore == 2){
+                asteroidSprite = new PIXI.Sprite(asteroid2);
+            } else if(grid[i][j].ore == 3){
+                asteroidSprite = new PIXI.Sprite(asteroid3);
+            }
+            let spriteXOffset = 0;
+            if(j % 2 == 0){
+                spriteXOffset = 15;
+            }
+            if(asteroidSprite != null){
+                asteroidSprite.tile = grid[i][j];
+                asteroidSprite.anchor.set(0.5);
+                asteroidSprite.x = (i * 26) - (lowestX * 20) + spriteXOffset;
+                asteroidSprite.y = (j * 27) - (lowestY * 20);
+                app.stage.addChild(asteroidSprite);
+                 // Opt-in to interactivity
+                 asteroidSprite.eventMode = 'static';
+
+                // Shows hand cursor
+                asteroidSprite.cursor = 'pointer';
+
+                // Pointers normalize touch and mouse (good for mobile and desktop)
+                asteroidSprite.on('pointerdown', onClick);
+            }
+        }
+    }
+
+    app.ticker.add((time) => {
+        //asteroid.rotation += 0.1 * time.deltaTime;
+    });
+
+    // Then adding the application's canvas to the DOM body.
+    document.body.appendChild(app.canvas);
+})();
+  </script>
