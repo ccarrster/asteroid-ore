@@ -6,6 +6,8 @@
 class Tile{
     constructor(ore){
         this.ore = ore;
+        this.man = null;
+        this.mark = false;
     }
 }
 
@@ -121,7 +123,9 @@ function onClick(event){
     if(gameMode == 'origin'){
         originTile = event.data.target;
         gameMode = 'destination';
+        markValidMoveTiles(originTile.tile.x, originTile.tile.y, null);
     } else if(gameMode == 'destination'){
+        clearMark();
         destinationTile = event.data.target;
         //TODO is it good?
         if(true){
@@ -152,14 +156,64 @@ function onClick(event){
 
 function moveManToTile(man, tile){
     let spriteXOffset = 0;
-        if(tile.tile.y % 2 == 0){
-            spriteXOffset = 15;
-        }
-        man.anchor.set(0.5);
-        man.x = (tile.tile.x * 26) - (lowestX * 20) + spriteXOffset;
-        man.y = (tile.tile.y * 27) - (lowestY * 20);
-        man.zIndex  = 2;
+    if(tile.tile.y % 2 == 0){
+        spriteXOffset = 15;
+    }
+    man.anchor.set(0.5);
+    man.x = (tile.tile.x * 26) - (lowestX * 20) + spriteXOffset;
+    man.y = (tile.tile.y * 27) - (lowestY * 20);
+    man.zIndex  = 2;
+    grid[tile.tile.x][tile.tile.y].man = 'blue';
 }
+
+function clearMark(){
+    for(let i = 0; i < grid.length; i++){
+        for(let j = 0; j < grid[i].length; j++){
+            grid[i][j].mark = false;
+        }
+    }
+}
+
+function markValidMoveTiles(x, y, direction){
+
+    let spriteXOffset = 0;
+    if(y % 2 == 0){
+        spriteXOffset = 1;
+    } else {
+        spriteXOffset = 0;
+    }
+
+    if(direction != null){
+        if((grid[x][y].ore == 1 || grid[x][y].ore == 2 || grid[x][y].ore == 3) && grid[x][y].man == null){
+            grid[x][y].mark = true;
+        } else {
+            return;
+        }
+    }
+    if(direction == null){
+        markValidMoveTiles(x + 1, y, 'e');
+        markValidMoveTiles(x - 1, y, 'w');
+        markValidMoveTiles(x + spriteXOffset, y - 1, 'ne');
+        markValidMoveTiles(x - 1 + spriteXOffset, y - 1, 'nw');
+        markValidMoveTiles(x + spriteXOffset, y + 1, 'se');
+        markValidMoveTiles(x - 1 + spriteXOffset, y + 1, 'sw');
+    } else if(direction == 'e') {
+        markValidMoveTiles(x + 1, y, 'e');
+    } else if(direction == 'w') {
+        markValidMoveTiles(x - 1, y, 'w');
+    } else if(direction == 'ne') {
+        markValidMoveTiles(x + spriteXOffset, y - 1, 'ne');
+    } else if(direction == 'nw') {
+        markValidMoveTiles(x - 1 + spriteXOffset, y - 1, 'nw');
+    } else if(direction == 'se') {
+        markValidMoveTiles(x + spriteXOffset, y + 1, 'se');
+    } else if(direction == 'sw') {
+        markValidMoveTiles(x - 1 + spriteXOffset, y + 1, 'sw');
+    }  
+}
+
+
+
 
 console.log(grid);
 
@@ -263,6 +317,7 @@ let manBlueSprite;
                 asteroidSprite.anchor.set(0.5);
                 asteroidSprite.x = (i * 26) - (lowestX * 20) + spriteXOffset;
                 asteroidSprite.y = (j * 27) - (lowestY * 20);
+                grid[i][j].sprite = asteroidSprite;
                 app.stage.addChild(asteroidSprite);
                  // Opt-in to interactivity
                  asteroidSprite.eventMode = 'static';
@@ -277,7 +332,27 @@ let manBlueSprite;
     }
 
     app.ticker.add((time) => {
-        //asteroid.rotation += 0.1 * time.deltaTime;
+        if(gameMode == 'destination'){
+            for(let i = 0; i < grid.length; i++){
+                for(let j = 0; j < grid[i].length; j++){
+                    if(grid[i][j].mark == true){
+                        const filter = new PIXI.AlphaFilter(1);
+                        grid[i][j].sprite.filters = [filter];
+                        filter.alpha = 0.5;
+                    }
+                }
+            }
+        }
+
+        if(gameMode == 'origin'){
+            for(let i = 0; i < grid.length; i++){
+                for(let j = 0; j < grid[i].length; j++){
+                    if(grid[i][j].sprite != undefined){
+                        grid[i][j].sprite.filters = [];    
+                    }   
+                }
+            }
+        }
     });
 
     // Then adding the application's canvas to the DOM body.
