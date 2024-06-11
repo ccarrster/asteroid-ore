@@ -105,24 +105,30 @@ class Player{
     }
 }
 
-let numPlayers = 4;
+let numPlayers = 0;
+while(numPlayers != 2 && numPlayers != 3 && numPlayers != 4){
+    numPlayers = prompt('Number of players (2, 3, 4)');
+}
 let players = [];
 let maxMen = 8;
 let turnRole = 0;
 if(numPlayers > 1){
     players.push(new Player('blue'));
     players.push(new Player('red'));
-} else if(numPlayers > 2){
+    maxMen = 8;
+}
+if(numPlayers > 2){
     players.push(new Player('yellow'));
     maxMen = 9;
-} else if(numPlayers > 3){
+} 
+if(numPlayers > 3){
     players.push(new Player('green'));
+    maxMen = 8;
 }
 
+console.log(players);
+
 let placedMen = 0;
-
-
-//TODO fix
 
 let currentPlayerIndex = 0;
 
@@ -139,6 +145,16 @@ function getNextPlayer(placing){
             skipCount += 1;
             if(skipCount >= numPlayers){
                 console.log('Game Over');
+                let scores = players.map((player) => {
+                    let score = 0;
+                    let flows = 0;
+                    score += player.ore1;
+                    score += player.ore2 * 2;
+                    score += player.ore3 * 3;
+                    flows = player.ore1 + player.ore2 + player.ore3;
+                    return player.color + ' ' + score + ' flows ' + flows;
+                });
+                console.log(scores);
                 gameMode = 'gameover';
             } else {
                 getNextPlayer(false);
@@ -168,8 +184,6 @@ function onClick(event){
         destinationTile = event.data.target;
         if(destinationTile.tile.mark == true){
             moveManToTile(originTile.tile.manSprite, destinationTile);
-            //TODO cleanup duplicate code above
-            //Well this is broken
             gameMode = 'origin';
             if(originTile.tile.ore == 1){
                 turn.ore1 += 1;
@@ -185,27 +199,29 @@ function onClick(event){
         }
     } else if(gameMode == 'place'){
         let placeTile = event.data.target;
-        //xxx
-        //TODO is it valid
-        let manSprite = null;
-        if(turn.color == 'blue'){
-            manSprite = manBlueSprites[turnRole];
-        } else if(turn.color == 'red'){
-            manSprite = manRedSprites[turnRole];
-        } else if(turn.color == 'yellow'){
-            manSprite = manYellowSprites[turnRole];
-        } else if(turn.color == 'green'){
-            manSprite = manGreenSprites[turnRole];
-        }
-        moveManToTile(manSprite, placeTile);
-        placedMen += 1;
-        getNextPlayer(true);
-        if(placedMen >= maxMen){
-            gameMode = 'origin';
+            if(placeTile.tile.man == null && placeTile.tile.ore == 1){
+                let manSprite = null;
+            if(turn.color == 'blue'){
+                manSprite = manBlueSprites[turnRole];
+            } else if(turn.color == 'red'){
+                manSprite = manRedSprites[turnRole];
+            } else if(turn.color == 'yellow'){
+                manSprite = manYellowSprites[turnRole];
+            } else if(turn.color == 'green'){
+                manSprite = manGreenSprites[turnRole];
+            }
+            moveManToTile(manSprite, placeTile);
+            manSprite.visible = true;
+            placedMen += 1;
+            if(placedMen >= maxMen){
+                gameMode = 'origin';
+                checkAllMenForValidMoves();
+                getNextPlayer(false);
+            } else {
+                getNextPlayer(true);
+            }
         }
     }
-    console.log(turn);
-    console.log(gameMode);
 }
 
 function checkAllMenForValidMoves(){
@@ -344,15 +360,13 @@ let manRedSprites = [];
     const manred = await PIXI.Assets.load('./images/manred.png');
     const manyellow = await PIXI.Assets.load('./images/manyellow.png');
 
-    const asteroid1Sprite = new PIXI.Sprite(asteroid1);
-    const asteroid2Sprite = new PIXI.Sprite(asteroid2);
-    const asteroid3Sprite = new PIXI.Sprite(asteroid3);
     for(let i = 0; i < 4; i++){
         let newSprite = new PIXI.Sprite(manblue);
         newSprite.colorName = 'blue';
         newSprite.anchor.set(0.5);
         newSprite.x = app.screen.width / 2;
         newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
         manBlueSprites.push(newSprite);
         app.stage.addChild(newSprite);
     }
@@ -362,6 +376,7 @@ let manRedSprites = [];
         newSprite.anchor.set(0.5);
         newSprite.x = app.screen.width / 2;
         newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
         manRedSprites.push(newSprite);
         app.stage.addChild(newSprite);
     }
@@ -371,6 +386,7 @@ let manRedSprites = [];
         newSprite.anchor.set(0.5);
         newSprite.x = app.screen.width / 2;
         newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
         manYellowSprites.push(newSprite);
         app.stage.addChild(newSprite);
     }
@@ -380,27 +396,10 @@ let manRedSprites = [];
         newSprite.anchor.set(0.5);
         newSprite.x = app.screen.width / 2;
         newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
         manGreenSprites.push(newSprite);
         app.stage.addChild(newSprite);
     }
-
-    asteroid1Sprite.anchor.set(0.5)
-    asteroid2Sprite.anchor.set(0.5)
-    asteroid3Sprite.anchor.set(0.5)
-
-
-    asteroid1Sprite.x = app.screen.width / 2
-    asteroid1Sprite.y = app.screen.height / 2
-    asteroid2Sprite.x = app.screen.width / 2
-    asteroid2Sprite.y = app.screen.height / 2
-    asteroid3Sprite.x = app.screen.width / 2
-    asteroid3Sprite.y = app.screen.height / 2
-    
-    app.stage.addChild(asteroid1Sprite);
-    app.stage.addChild(asteroid2Sprite);
-    app.stage.addChild(asteroid3Sprite);
-    
-    
 
     for(let i = 0; i < grid.length; i++)
     {
