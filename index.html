@@ -109,6 +109,7 @@ let numPlayers = 0;
 while(numPlayers != 2 && numPlayers != 3 && numPlayers != 4){
     numPlayers = prompt('Number of players (2, 3, 4)');
 }
+markClearPlaceTiles();
 let players = [];
 let maxMen = 8;
 let turnRole = 0;
@@ -125,8 +126,6 @@ if(numPlayers > 3){
     players.push(new Player('green'));
     maxMen = 8;
 }
-
-console.log(players);
 
 let placedMen = 0;
 
@@ -199,8 +198,8 @@ function onClick(event){
         }
     } else if(gameMode == 'place'){
         let placeTile = event.data.target;
-            if(placeTile.tile.man == null && placeTile.tile.ore == 1){
-                let manSprite = null;
+        if(placeTile.tile.man == null && placeTile.tile.ore == 1){
+            let manSprite = null;
             if(turn.color == 'blue'){
                 manSprite = manBlueSprites[turnRole];
             } else if(turn.color == 'red'){
@@ -210,8 +209,10 @@ function onClick(event){
             } else if(turn.color == 'green'){
                 manSprite = manGreenSprites[turnRole];
             }
+            
             moveManToTile(manSprite, placeTile);
             manSprite.visible = true;
+            
             placedMen += 1;
             if(placedMen >= maxMen){
                 gameMode = 'origin';
@@ -219,6 +220,18 @@ function onClick(event){
                 getNextPlayer(false);
             } else {
                 getNextPlayer(true);
+            }
+        }
+    }
+}
+
+function markClearPlaceTiles(){
+    for(let i = 0; i < grid.length; i++)
+    {
+        for(let j = 0; j < grid[i].length; j++)
+        {
+            if(grid[i][j].ore == 1 && grid[i][j].man == null){
+                grid[i][j].mark = true;
             }
         }
     }
@@ -329,11 +342,6 @@ function markValidMoveTiles(x, y, direction){
         markValidMoveTiles(x - 1 + spriteXOffset, y + 1, 'sw');
     }  
 }
-
-
-
-
-console.log(grid);
 
 let lowestX = 130;
 let lowestY = 130;
@@ -453,13 +461,23 @@ let manRedSprites = [];
     }
 
     app.ticker.add((time) => {
-        if(gameMode == 'destination'){
+        if(gameMode == 'destination' || gameMode == 'place'){
             for(let i = 0; i < grid.length; i++){
                 for(let j = 0; j < grid[i].length; j++){
                     if(grid[i][j].mark == true){
                         const filter = new PIXI.AlphaFilter(1);
                         grid[i][j].sprite.filters = [filter];
-                        filter.alpha = 0.5;
+                        if(gameMode == 'place' && grid[i][j].man != null){
+                            filter.alpha = 1.0;
+                        } else {
+                            filter.alpha = 0.5;
+                        }
+                    } else {
+                        if(grid[i][j].sprite != undefined){
+                            const filter = new PIXI.AlphaFilter(1);
+                            grid[i][j].sprite.filters = [filter];
+                            filter.alpha = 1.0;
+                        }
                     }
                 }
             }
@@ -469,7 +487,13 @@ let manRedSprites = [];
             for(let i = 0; i < grid.length; i++){
                 for(let j = 0; j < grid[i].length; j++){
                     if(grid[i][j].sprite != undefined){
-                        grid[i][j].sprite.filters = [];    
+                        const filter = new PIXI.AlphaFilter(1);
+                        grid[i][j].sprite.filters = [filter];
+                        if(grid[i][j].man == turn.color){
+                            filter.alpha = 0.5;
+                        } else {
+                            filter.alpha = 1.0;
+                        }
                     }   
                 }
             }
