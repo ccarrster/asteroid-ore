@@ -24,27 +24,45 @@ let xTileOffset = 0
 let yTileOffset = 0;
 
 let grid = [];
-for(let i = 0; i < 122; i++){
-    grid[i] = [];
-    for(let j = 0; j < 122; j++){
-        grid[i][j] = new Tile('unselectable');
+
+function resetGrid(){
+
+    for(let i = 0; i < 122; i++){
+        for(let j = 0; j < 122; j++){
+            if(grid[i] != undefined && grid[i][j] != undefined){
+                if(grid[i][j].sprite != undefined){
+                    grid[i][j].sprite.destroy();
+                }
+            }
+        }
+    }
+
+    grid = [];
+
+    for(let i = 0; i < 122; i++){
+        grid[i] = [];
+        for(let j = 0; j < 122; j++){
+            grid[i][j] = new Tile('unselectable');
+        }
+    }
+
+
+    for(let i = 0; i < 10; i++){
+        tiles.push(new Tile(3));
+    }
+    for(let i = 0; i < 20; i++){
+        tiles.push(new Tile(2));
+    }
+    for(let i = 0; i < 30; i++){
+        tiles.push(new Tile(1));
+    }
+
+    while(tiles.length > 0){
+        addTile(tiles.splice(Math.floor(Math.random()*tiles.length), 1)[0]);
     }
 }
 
-
-for(let i = 0; i < 10; i++){
-    tiles.push(new Tile(3));
-}
-for(let i = 0; i < 20; i++){
-    tiles.push(new Tile(2));
-}
-for(let i = 0; i < 30; i++){
-    tiles.push(new Tile(1));
-}
-
-while(tiles.length > 0){
-    addTile(tiles.splice(Math.floor(Math.random()*tiles.length), 1)[0]);
-}
+resetGrid();
 
 function addTile(newTile){
     newTile.x = 59 + xTileOffset;
@@ -119,26 +137,10 @@ class Player{
 }
 
 let numPlayers = 0;
-while(numPlayers != 2 && numPlayers != 3 && numPlayers != 4){
-    numPlayers = prompt('Number of players (2, 3, 4)');
-}
-markClearPlaceTiles();
+
 let players = [];
 let maxMen = 8;
 let turnRole = 0;
-if(numPlayers > 1){
-    players.push(new Player('blue'));
-    players.push(new Player('red'));
-    maxMen = 8;
-}
-if(numPlayers > 2){
-    players.push(new Player('yellow'));
-    maxMen = 9;
-} 
-if(numPlayers > 3){
-    players.push(new Player('green'));
-    maxMen = 8;
-}
 
 let placedMen = 0;
 
@@ -172,6 +174,7 @@ function getNextPlayer(placing){
                 });
                 gameMode = 'gameover';
                 modeText.text = 'Game Over';
+                restartSprite.visible = true;
             } else {
                 getNextPlayer(false);
             }
@@ -181,12 +184,60 @@ function getNextPlayer(placing){
     }
 }
 
-let turn = players[0];
+let turn = null;
 let gameMode = 'place';
 let originTile = null;
 let destinationTile = null;
 let skipCount = 0;
 
+function onRestart(){
+    modeText.text = 'Select number of players';
+    scoreTexts.forEach((text, index) => {
+        scoreTexts[index].text = '';
+    });
+    turnRole = 0;
+    placedMen = 0;
+    xTileOffset = 0
+    yTileOffset = 0;
+    restartSprite.visible = false;
+    players = [];
+    skipCount = 0;
+    destinationTile = null;
+    originTile = null;
+    gameMode = 'place';
+    turn = null;
+    resetGrid();
+    createGridSprites();
+    resetMenSprites();
+    players2Sprite.visible = true;
+    players3Sprite.visible = true;
+    players4Sprite.visible = true;
+}
+
+function onPlayerClick(event){
+    let originSprite = event.data.target;
+    numPlayers = originSprite.numPlayers;
+    
+    markClearPlaceTiles();
+    if(numPlayers > 1){
+        players.push(new Player('blue'));
+        players.push(new Player('red'));
+        maxMen = 8;
+    }
+    if(numPlayers > 2){
+        players.push(new Player('yellow'));
+        maxMen = 9;
+    } 
+    if(numPlayers > 3){
+        players.push(new Player('green'));
+        maxMen = 8;
+    }
+    turn = players[0];
+    modeText.text = 'Player ' + turn.color + ' place your space miner';
+    players2Sprite.visible = false;
+    players3Sprite.visible = false;
+    players4Sprite.visible = false;
+}
 
 function onClick(event){
     if(gameMode == 'origin'){         
@@ -230,7 +281,8 @@ function onClick(event){
             } else if(turn.color == 'green'){
                 manSprite = manGreenSprites[turnRole];
             }
-            
+            console.log(turn);
+            console.log(manSprite);
             moveManToTile(manSprite, placeTile);
             manSprite.visible = true;
             
@@ -301,7 +353,6 @@ function moveManToTile(man, tile){
     if(tile.tile.y % 2 == 0){
         spriteXOffset = 15;
     }
-    man.anchor.set(0.5);
     man.x = (tile.tile.x * 26) - (lowestX * 20) + spriteXOffset;
     man.y = (tile.tile.y * 27) - (lowestY * 20);
     man.zIndex  = 2;
@@ -375,83 +426,13 @@ let manRedSprites = [];
 let scoreTexts = [];
 let modeText = null;
 
+let players2Sprite = null;
+let players3Sprite = null;
+let players4Sprite = null;
+let restartSprite = null;
 
-(async () =>
-{
-    // Create a PixiJS application.
-    const app = new PIXI.Application();
-
-    // Intialize the application.
-    await app.init({ background: '#1099bb', resizeTo: window });
-
-    
-    for(let i = 0; i < 4; i++){
-        let scoreText = new PIXI.Text({ text: '' });
-
-        scoreText.x = 50;
-        scoreText.y = 100 + i * 24;
-
-        app.stage.addChild(scoreText);
-        scoreTexts.push(scoreText);
-    }
-
-    modeText = new PIXI.Text({ text: 'Player ' + turn.color + ' place your space miner' });
-
-    modeText.x = 50;
-    modeText.y = 50;
-
-    app.stage.addChild(modeText);
-    scoreTexts.push(modeText);
-
-    const asteroid1 = await PIXI.Assets.load('./images/asteroid1.png');
-    const asteroid2 = await PIXI.Assets.load('./images/asteroid2.png');
-    const asteroid3 = await PIXI.Assets.load('./images/asteroid3.png');
-    const manblue = await PIXI.Assets.load('./images/manblue.png');
-    const mangreen = await PIXI.Assets.load('./images/mangreen.png');
-    const manred = await PIXI.Assets.load('./images/manred.png');
-    const manyellow = await PIXI.Assets.load('./images/manyellow.png');
-
-    for(let i = 0; i < 4; i++){
-        let newSprite = new PIXI.Sprite(manblue);
-        newSprite.colorName = 'blue';
-        newSprite.anchor.set(0.5);
-        newSprite.x = app.screen.width / 2;
-        newSprite.y = app.screen.height / 2;
-        newSprite.visible = false;
-        manBlueSprites.push(newSprite);
-        app.stage.addChild(newSprite);
-    }
-    for(let i = 0; i < 4; i++){
-        let newSprite = new PIXI.Sprite(manred);
-        newSprite.colorName = 'red';
-        newSprite.anchor.set(0.5);
-        newSprite.x = app.screen.width / 2;
-        newSprite.y = app.screen.height / 2;
-        newSprite.visible = false;
-        manRedSprites.push(newSprite);
-        app.stage.addChild(newSprite);
-    }
-    for(let i = 0; i < 3; i++){
-        let newSprite = new PIXI.Sprite(manyellow);
-        newSprite.colorName = 'yellow';
-        newSprite.anchor.set(0.5);
-        newSprite.x = app.screen.width / 2;
-        newSprite.y = app.screen.height / 2;
-        newSprite.visible = false;
-        manYellowSprites.push(newSprite);
-        app.stage.addChild(newSprite);
-    }
-    for(let i = 0; i < 2; i++){
-        let newSprite = new PIXI.Sprite(mangreen);
-        newSprite.colorName = 'green';
-        newSprite.anchor.set(0.5);
-        newSprite.x = app.screen.width / 2;
-        newSprite.y = app.screen.height / 2;
-        newSprite.visible = false;
-        manGreenSprites.push(newSprite);
-        app.stage.addChild(newSprite);
-    }
-
+//xxx
+function createGridSprites(){
     for(let i = 0; i < grid.length; i++)
     {
         for(let j = 0; j < grid[i].length; j++)
@@ -502,24 +483,171 @@ let modeText = null;
             }
         }
     }
+}
+
+function resetMenSprites(){
+    manBlueSprites = [];
+    manRedSprites = [];
+    manYellowSprites = [];
+    manGreenSprites = [];
+
+    for(let i = 0; i < 4; i++){
+        let newSprite = new PIXI.Sprite(manblue);
+        newSprite.colorName = 'blue';
+        newSprite.anchor.set(0.5);
+        newSprite.x = app.screen.width / 2;
+        newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
+        manBlueSprites.push(newSprite);
+        app.stage.addChild(newSprite);
+    }
+    for(let i = 0; i < 4; i++){
+        let newSprite = new PIXI.Sprite(manred);
+        newSprite.colorName = 'red';
+        newSprite.anchor.set(0.5);
+        newSprite.x = app.screen.width / 2;
+        newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
+        manRedSprites.push(newSprite);
+        app.stage.addChild(newSprite);
+    }
+    for(let i = 0; i < 3; i++){
+        let newSprite = new PIXI.Sprite(manyellow);
+        newSprite.colorName = 'yellow';
+        newSprite.anchor.set(0.5);
+        newSprite.x = app.screen.width / 2;
+        newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
+        manYellowSprites.push(newSprite);
+        app.stage.addChild(newSprite);
+    }
+    for(let i = 0; i < 2; i++){
+        let newSprite = new PIXI.Sprite(mangreen);
+        newSprite.colorName = 'green';
+        newSprite.anchor.set(0.5);
+        newSprite.x = app.screen.width / 2;
+        newSprite.y = app.screen.height / 2;
+        newSprite.visible = false;
+        manGreenSprites.push(newSprite);
+        app.stage.addChild(newSprite);
+    }
+}
+
+let asteroid1 = null;
+let asteroid2 = null;
+let asteroid3 = null;
+let manblue = null;
+let mangreen = null;
+let manred = null;
+let manyellow = null;
+let app = null;
+
+(async () =>
+{
+    // Create a PixiJS application.
+    app = new PIXI.Application();
+
+    // Intialize the application.
+    await app.init({ background: '#1099bb', resizeTo: window });
+
+    
+    for(let i = 0; i < 4; i++){
+        let scoreText = new PIXI.Text({ text: '' });
+
+        scoreText.x = 50;
+        scoreText.y = 100 + i * 24;
+
+        app.stage.addChild(scoreText);
+        scoreTexts.push(scoreText);
+    }
+
+    modeText = new PIXI.Text({ text: 'Select number of players' });
+
+    modeText.x = 50;
+    modeText.y = 50;
+
+    app.stage.addChild(modeText);
+
+    asteroid1 = await PIXI.Assets.load('./images/asteroid1.png');
+    asteroid2 = await PIXI.Assets.load('./images/asteroid2.png');
+    asteroid3 = await PIXI.Assets.load('./images/asteroid3.png');
+    manblue = await PIXI.Assets.load('./images/manblue.png');
+    mangreen = await PIXI.Assets.load('./images/mangreen.png');
+    manred = await PIXI.Assets.load('./images/manred.png');
+    manyellow = await PIXI.Assets.load('./images/manyellow.png');
+
+    const players2 = await PIXI.Assets.load('./images/players2.png');
+    const players3 = await PIXI.Assets.load('./images/players3.png');
+    const players4 = await PIXI.Assets.load('./images/players4.png');
+    const restart = await PIXI.Assets.load('./images/restart.png');
+
+    players2Sprite = new PIXI.Sprite(players2);
+    players2Sprite.anchor.set(0.5);
+    players2Sprite.x = app.screen.width / 2;
+    players2Sprite.y = app.screen.height / 2 - 150;
+    players2Sprite.visible = true;
+    players2Sprite.numPlayers = 2;
+    players2Sprite.eventMode = 'static';
+    players2Sprite.cursor = 'pointer';
+    players2Sprite.on('pointerdown', onPlayerClick);
+    app.stage.addChild(players2Sprite);
+
+    players3Sprite = new PIXI.Sprite(players3);
+    players3Sprite.anchor.set(0.5);
+    players3Sprite.x = app.screen.width / 2;
+    players3Sprite.y = app.screen.height / 2;
+    players3Sprite.visible = true;
+    players3Sprite.numPlayers = 3;
+    players3Sprite.eventMode = 'static';
+    players3Sprite.cursor = 'pointer';
+    players3Sprite.on('pointerdown', onPlayerClick);
+    app.stage.addChild(players3Sprite);
+
+    players4Sprite = new PIXI.Sprite(players4);
+    players4Sprite.anchor.set(0.5);
+    players4Sprite.x = app.screen.width / 2;
+    players4Sprite.y = app.screen.height / 2 + 150;
+    players4Sprite.visible = true;
+    players4Sprite.numPlayers = 4;
+    players4Sprite.eventMode = 'static';
+    players4Sprite.cursor = 'pointer';
+    players4Sprite.on('pointerdown', onPlayerClick);
+    app.stage.addChild(players4Sprite);
+
+    restartSprite = new PIXI.Sprite(restart);
+    restartSprite.anchor.set(0.5);
+    restartSprite.x = app.screen.width / 2;
+    restartSprite.y = app.screen.height / 2;
+    restartSprite.visible = false;
+    restartSprite.eventMode = 'static';
+    restartSprite.cursor = 'pointer';
+    restartSprite.on('pointerdown', onRestart);
+    app.stage.addChild(restartSprite);
+    
+    resetMenSprites();
+    createGridSprites();
 
     app.ticker.add((time) => {
         if(gameMode == 'destination' || gameMode == 'place'){
             for(let i = 0; i < grid.length; i++){
                 for(let j = 0; j < grid[i].length; j++){
                     if(grid[i][j].mark == true){
-                        const filter = new PIXI.AlphaFilter(1);
-                        grid[i][j].sprite.filters = [filter];
-                        if(gameMode == 'place' && grid[i][j].man != null){
-                            filter.alpha = 1.0;
-                        } else {
-                            filter.alpha = 0.5;
-                        }
-                    } else {
                         if(grid[i][j].sprite != undefined){
                             const filter = new PIXI.AlphaFilter(1);
                             grid[i][j].sprite.filters = [filter];
-                            filter.alpha = 1.0;
+                            if(gameMode == 'place' && grid[i][j].man != null){
+                                filter.alpha = 1.0;
+                            } else {
+                                filter.alpha = 0.5;
+                            }
+                        }
+                    } else {
+                        if(grid[i][j].sprite != undefined){
+                            if(grid[i][j].sprite != undefined){
+                                const filter = new PIXI.AlphaFilter(1);
+                                grid[i][j].sprite.filters = [filter];
+                                filter.alpha = 1.0;
+                            }
                         }
                     }
                 }
