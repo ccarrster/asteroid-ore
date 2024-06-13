@@ -18,14 +18,10 @@ class Point{
     }
 }
 
-//We have a 121 x 121 grid
-//The first tile starts at 59, 59
-/*
-
-*/
-
-
 let tiles = [];
+
+let xTileOffset = 0
+let yTileOffset = 0;
 
 let grid = [];
 for(let i = 0; i < 122; i++){
@@ -51,6 +47,23 @@ while(tiles.length > 0){
 }
 
 function addTile(newTile){
+    newTile.x = 59 + xTileOffset;
+    newTile.y = 59 + yTileOffset;
+    grid[newTile.x][newTile.y] = newTile;
+    xTileOffset += 1;
+    if(yTileOffset % 2 == 0){
+        if(xTileOffset == 8){
+            xTileOffset = 0;
+            yTileOffset += 1;
+        } 
+    } else if(xTileOffset == 7){
+        xTileOffset = 0;
+        yTileOffset += 1;
+    }
+}
+
+//Currently not used
+function addRandomTile(newTile){
     if(tiles.length == 59){
         newTile.x = 59;
         newTile.y = 59;
@@ -146,15 +159,19 @@ function getNextPlayer(placing){
                 console.log('Game Over');
                 let scores = players.map((player) => {
                     let score = 0;
-                    let flows = 0;
+                    let asteroids = 0;
                     score += player.ore1;
                     score += player.ore2 * 2;
                     score += player.ore3 * 3;
-                    flows = player.ore1 + player.ore2 + player.ore3;
-                    return player.color + ' ' + score + ' flows ' + flows;
+                    asteroids = player.ore1 + player.ore2 + player.ore3;
+                    return player.color + ' ' + score + ' asteroids ' + asteroids;
                 });
                 console.log(scores);
+                scores.forEach((score, index) => {
+                    scoreTexts[index].text = score;
+                });
                 gameMode = 'gameover';
+                modeText.text = 'Game Over';
             } else {
                 getNextPlayer(false);
             }
@@ -177,6 +194,7 @@ function onClick(event){
         if(grid[originTile.tile.x][originTile.tile.y].man == turn.color){
             gameMode = 'destination';
             markValidMoveTiles(originTile.tile.x, originTile.tile.y, null);
+            modeText.text = 'Player ' + turn.color + ' select asteroid to mine';
         }
             
     } else if(gameMode == 'destination'){
@@ -195,6 +213,9 @@ function onClick(event){
             originTile.destroy();
             checkAllMenForValidMoves();
             getNextPlayer(false);
+            if(gameMode != 'gameover'){
+                modeText.text = 'Player ' + turn.color + ' select your space miner to move';
+            }
         }
     } else if(gameMode == 'place'){
         let placeTile = event.data.target;
@@ -218,8 +239,10 @@ function onClick(event){
                 gameMode = 'origin';
                 checkAllMenForValidMoves();
                 getNextPlayer(false);
+                modeText.text = 'Player ' + turn.color + ' select your space miner to move';
             } else {
                 getNextPlayer(true);
+                modeText.text = 'Player ' + turn.color + ' place your space miner';
             }
         }
     }
@@ -349,7 +372,8 @@ let manBlueSprites = [];
 let manGreenSprites = [];
 let manYellowSprites = [];
 let manRedSprites = [];
-
+let scoreTexts = [];
+let modeText = null;
 
 
 (async () =>
@@ -359,6 +383,25 @@ let manRedSprites = [];
 
     // Intialize the application.
     await app.init({ background: '#1099bb', resizeTo: window });
+
+    
+    for(let i = 0; i < 4; i++){
+        let scoreText = new PIXI.Text({ text: '' });
+
+        scoreText.x = 50;
+        scoreText.y = 100 + i * 24;
+
+        app.stage.addChild(scoreText);
+        scoreTexts.push(scoreText);
+    }
+
+    modeText = new PIXI.Text({ text: 'Player ' + turn.color + ' place your space miner' });
+
+    modeText.x = 50;
+    modeText.y = 50;
+
+    app.stage.addChild(modeText);
+    scoreTexts.push(modeText);
 
     const asteroid1 = await PIXI.Assets.load('./images/asteroid1.png');
     const asteroid2 = await PIXI.Assets.load('./images/asteroid2.png');
